@@ -1,0 +1,10 @@
+## Interface: 120000
+## Interface-Retail: 120000
+## Title: Skinning Data
+## Notes: Tracks renown beast skinning and epic drops across characters.
+## Author: Local
+## Version: 1.1.0
+## SavedVariables: SkinningDataDB
+
+Core.lua
+UI.lua
