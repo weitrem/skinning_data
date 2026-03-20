@@ -25,6 +25,17 @@ local ORDERED_ITEM_IDS = {
     238529,
 }
 
+local function IncreaseFontSize(fontString, delta)
+    if not fontString or not fontString.GetFont or not fontString.SetFont then
+        return
+    end
+
+    local fontPath, size, flags = fontString:GetFont()
+    if fontPath and size then
+        fontString:SetFont(fontPath, size + delta, flags)
+    end
+end
+
 local function ResolveItemIcon(itemID)
     if C_Item and C_Item.GetItemIconByID then
         local icon = C_Item.GetItemIconByID(itemID)
@@ -129,6 +140,7 @@ local function RefreshOverview()
                 row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
                 row.text:SetAllPoints()
                 row.text:SetJustifyH("LEFT")
+                IncreaseFontSize(row.text, 5)
                 characterRows[i] = row
             end
             local row = characterRows[i]
@@ -137,7 +149,12 @@ local function RefreshOverview()
             row:SetPoint("TOPLEFT", charScrollChild, "TOPLEFT", 0, -((i - 1) * ROW_HEIGHT))
             row:Show()
             local data = summary[i]
-            row.text:SetText(string.format("%s-%s: %d", data.name or "?", data.realm or "?", data.total or 0))
+            local charLabel = string.format("%s-%s", data.name or "?", data.realm or "?")
+            if (data.total or 0) <= 0 and (data.skinnedToday or 0) >= 3 then
+                row.text:SetText(string.format("%s: no loot today", charLabel))
+            else
+                row.text:SetText(string.format("%s: %d", charLabel, data.total or 0))
+            end
         else
             if characterRows[i] then
                 characterRows[i]:Hide()
@@ -260,6 +277,7 @@ local function BuildFrame()
     overviewPanel.charHeader = overviewPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     overviewPanel.charHeader:SetPoint("TOPLEFT", 16, -120)
     overviewPanel.charHeader:SetText("Eligible Characters")
+    IncreaseFontSize(overviewPanel.charHeader, 5)
 
     charScrollFrame = CreateFrame("ScrollFrame", nil, overviewPanel, "UIPanelScrollFrameTemplate")
     charScrollFrame:SetPoint("TOPLEFT", overviewPanel, "TOPLEFT", 10, -136)

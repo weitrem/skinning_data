@@ -174,6 +174,7 @@ local function EnsureCharacterRecord()
     character.skinnedBeasts = character.skinnedBeasts or {}
     character.totals = character.totals or {}
     character.daily = character.daily or {}
+    character.dailySkinned = character.dailySkinned or {}
 
     return character
 end
@@ -232,6 +233,7 @@ local function RecordTrackedSkinningAndDrops()
 
     local trackedSourceNpcID = nil
     local countedNpcThisLoot = {}
+    local skinnedThisLoot = 0
     local pendingDrops = {}
 
     for slotIndex = 1, numLootItems do
@@ -251,9 +253,15 @@ local function RecordTrackedSkinningAndDrops()
                 if not countedNpcThisLoot[npcID] then
                     character.skinnedBeasts[npcID] = (character.skinnedBeasts[npcID] or 0) + 1
                     countedNpcThisLoot[npcID] = true
+                    skinnedThisLoot = skinnedThisLoot + 1
                 end
             end
         end
+    end
+
+    if skinnedThisLoot > 0 then
+        local dayKey = GetServerDailyKey(now)
+        character.dailySkinned[dayKey] = (character.dailySkinned[dayKey] or 0) + skinnedThisLoot
     end
 
     if trackedSourceNpcID then
@@ -367,11 +375,16 @@ function SkinningData.GetCharacterSummary()
             for _, amount in pairs(dayBucket or {}) do
                 total = total + (amount or 0)
             end
+            local skinnedToday = 0
+            if type(character.dailySkinned) == "table" then
+                skinnedToday = character.dailySkinned[dayKey] or 0
+            end
             table.insert(summary, {
                 key = charKey,
                 name = character.name,
                 realm = character.realm,
                 total = total,
+                skinnedToday = skinnedToday,
             })
         end
     end
@@ -392,6 +405,7 @@ function SkinningData.ClearDailyHistory()
     EnsureDB()
     for _, character in pairs(SkinningDataDB.characters) do
         character.daily = {}
+        character.dailySkinned = {}
     end
     NotifyListeners()
 end
@@ -402,6 +416,7 @@ function SkinningData.ResetTotals()
         character.skinnedBeasts = {}
         character.totals = {}
         character.daily = {}
+        character.dailySkinned = {}
     end
     NotifyListeners()
 end
