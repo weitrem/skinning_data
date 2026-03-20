@@ -377,10 +377,12 @@ function SkinningData.GetCharacterSummary()
     end
 
     table.sort(summary, function(a, b)
-        if a.total == b.total then
-            return a.key < b.key
+        local aLabel = string.lower(string.format("%s-%s", a.name or "", a.realm or ""))
+        local bLabel = string.lower(string.format("%s-%s", b.name or "", b.realm or ""))
+        if aLabel == bLabel then
+            return (a.key or "") < (b.key or "")
         end
-        return a.total > b.total
+        return aLabel < bLabel
     end)
 
     return summary
