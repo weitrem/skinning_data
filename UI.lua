@@ -102,7 +102,6 @@ end
 local function RefreshOverview()
     EnsureOverviewRows()
 
-    local totals = SkinningData.GetAccountTotals()
     local dailyTotals, dayKey = SkinningData.GetDailyTotals()
     local summary = SkinningData.GetCharacterSummary()
 
@@ -114,7 +113,7 @@ local function RefreshOverview()
     overviewPanel.dailyLabel:SetText(string.format("Daily Total (%s): %d", dayKey, dailyTotalCount))
 
     for i, itemID in ipairs(ORDERED_ITEM_IDS) do
-        local count = totals[itemID] or 0
+        local count = dailyTotals[itemID] or 0
         local row = itemRows[i]
         row.icon:SetTexture(ResolveItemIcon(itemID))
         row.text:SetText(FormatItemCountText(itemID, count))

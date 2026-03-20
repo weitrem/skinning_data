@@ -358,11 +358,13 @@ end
 
 function SkinningData.GetCharacterSummary()
     EnsureDB()
+    local dayKey = GetServerDailyKey()
     local summary = {}
     for charKey, character in pairs(SkinningDataDB.characters) do
         if IsCharacterEligible(character) then
             local total = 0
-            for _, amount in pairs(character.totals or {}) do
+            local dayBucket = character.daily and character.daily[dayKey]
+            for _, amount in pairs(dayBucket or {}) do
                 total = total + (amount or 0)
             end
             table.insert(summary, {
