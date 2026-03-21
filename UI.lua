@@ -18,6 +18,7 @@ local characterRows = {}
 local historyScrollFrame
 local historyScrollChild
 local historyDayRows = {}
+local dailyQuestRows = {}
 
 local ORDERED_ITEM_IDS = {
     238530,
@@ -103,6 +104,7 @@ local function RefreshOverview()
     EnsureOverviewRows()
 
     local dailyTotals, dayKey = SkinningData.GetDailyTotals()
+    local dailyQuestStatus = SkinningData.GetDailyQuestStatus()
     local summary = SkinningData.GetCharacterSummary()
 
     local dailyTotalCount = 0
@@ -117,6 +119,26 @@ local function RefreshOverview()
         local row = itemRows[i]
         row.icon:SetTexture(ResolveItemIcon(itemID))
         row.text:SetText(FormatItemCountText(itemID, count))
+    end
+
+    for i = 1, #dailyQuestRows do
+        local row = dailyQuestRows[i]
+        local entry = dailyQuestStatus[i]
+        if entry then
+            local label = entry.name or string.format("Quest %d", i)
+            if entry.complete == true then
+                row:SetText(string.format("%s: done", label))
+                row:SetTextColor(0, 1, 0)
+            elseif entry.complete == false then
+                row:SetText(string.format("%s: not done", label))
+                row:SetTextColor(1, 0, 0)
+            else
+                row:SetText(string.format("%s: unknown", label))
+                row:SetTextColor(1, 0.82, 0)
+            end
+        else
+            row:SetText("")
+        end
     end
 
     local ROW_HEIGHT = 18
@@ -256,6 +278,18 @@ local function BuildFrame()
     overviewPanel.dailyLabel = overviewPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     overviewPanel.dailyLabel:SetPoint("TOPLEFT", 16, -8)
     overviewPanel.dailyLabel:SetText("Daily Total: 0")
+
+    overviewPanel.questHeader = overviewPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    overviewPanel.questHeader:SetPoint("TOPLEFT", 330, -10)
+    overviewPanel.questHeader:SetText("Daily Quests")
+
+    for i = 1, 5 do
+        local row = overviewPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        row:SetPoint("TOPLEFT", 330, -30 - ((i - 1) * 18))
+        row:SetJustifyH("LEFT")
+        row:SetText("-")
+        dailyQuestRows[i] = row
+    end
 
     overviewPanel.charHeader = overviewPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     overviewPanel.charHeader:SetPoint("TOPLEFT", 16, -120)

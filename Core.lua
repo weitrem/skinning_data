@@ -10,6 +10,22 @@ local SCHEMA_VERSION = 1
 local SKINNING_SPELL_ID = 8613
 local CORRELATION_WINDOW_SECONDS = 5
 
+local DAILY_QUEST_NAMES = {
+    "Eversong",
+    "Zul'Aman",
+    "Harandar",
+    "Voidstorm",
+    "GrandBeast",
+}
+
+local DAILY_QUEST_IDS = {
+    88545,
+    88526,
+    88531,
+    88532,
+    88524,
+}
+
 local TRACKED_NPCS = {
     [245688] = "Gloomclaw",
     [245699] = "Silverscale",
@@ -153,6 +169,7 @@ local function EnsureDB()
     SkinningDataDB.version = SkinningDataDB.version or SCHEMA_VERSION
     SkinningDataDB.characters = SkinningDataDB.characters or {}
     SkinningDataDB.history = SkinningDataDB.history or {}
+    SkinningDataDB.dailyQuestStatusSnapshot = SkinningDataDB.dailyQuestStatusSnapshot or {}
 end
 
 local function EnsureCharacterRecord()
@@ -281,6 +298,48 @@ local function MigrateIfNeeded()
     SkinningDataDB.version = SCHEMA_VERSION
 end
 
+local function PrintDailyQuestStatusOncePerDay()
+    EnsureDB()
+
+    local dayKey = GetServerDailyKey()
+    local snapshot = SkinningDataDB.dailyQuestStatusSnapshot
+    local hasSnapshotForDay = type(snapshot) == "table"
+        and snapshot.dayKey == dayKey
+        and type(snapshot.entries) == "table"
+        and #snapshot.entries > 0
+
+    if SkinningDataDB.dailyQuestStatusDayKey == dayKey and hasSnapshotForDay then
+        return
+    end
+
+    if not (C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted) then
+        return
+    end
+
+    local chatFrame = DEFAULT_CHAT_FRAME
+    if not (chatFrame and chatFrame.AddMessage) then
+        return
+    end
+
+    local entries = {}
+    for i = 1, #DAILY_QUEST_IDS do
+        local isComplete = C_QuestLog.IsQuestFlaggedCompleted(DAILY_QUEST_IDS[i]) == true
+        local colorValue = isComplete and 1 or 0
+        entries[#entries + 1] = {
+            name = DAILY_QUEST_NAMES[i],
+            questID = DAILY_QUEST_IDS[i],
+            complete = isComplete,
+        }
+        chatFrame:AddMessage(DAILY_QUEST_NAMES[i], 1 - colorValue, colorValue, 0)
+    end
+
+    SkinningDataDB.dailyQuestStatusSnapshot = {
+        dayKey = dayKey,
+        entries = entries,
+    }
+    SkinningDataDB.dailyQuestStatusDayKey = dayKey
+end
+
 function SkinningData.RegisterListener(callback)
     if type(callback) ~= "function" then
         return
@@ -329,6 +388,27 @@ function SkinningData.GetDailyTotals()
         end
     end
     return totals, dayKey
+end
+
+function SkinningData.GetDailyQuestStatus()
+    EnsureDB()
+
+    local dayKey = GetServerDailyKey()
+    local snapshot = SkinningDataDB.dailyQuestStatusSnapshot
+    if type(snapshot) == "table" and snapshot.dayKey == dayKey and type(snapshot.entries) == "table" then
+        return snapshot.entries, dayKey
+    end
+
+    local entries = {}
+    for i = 1, #DAILY_QUEST_IDS do
+        entries[#entries + 1] = {
+            name = DAILY_QUEST_NAMES[i],
+            questID = DAILY_QUEST_IDS[i],
+            complete = nil,
+        }
+    end
+
+    return entries, dayKey
 end
 
 function SkinningData.GetDailyHistory()
@@ -411,6 +491,7 @@ EVENT_FRAME:SetScript("OnEvent", function(_, event, ...)
         EnsureDB()
         MigrateIfNeeded()
         EnsureCharacterRecord()
+        PrintDailyQuestStatusOncePerDay()
         UpdateCurrentCharacterProfessionState()
         NotifyListeners()
     elseif event == "PLAYER_ENTERING_WORLD" then
